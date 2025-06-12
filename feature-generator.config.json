@@ -1,0 +1,50 @@
+{
+  "srcDir": "src",
+  "featuresDir": "src/features",
+  "routingConfig": {
+    "enabled": true,
+    "routesFile": "src/routes/routes.ts",
+    "routeArrayName": "routes",
+    "routeObjectStructure": {
+      "path": "path",
+      "component": "component",
+      "name": "name",
+      "meta": "meta"
+    }
+  },
+  "reduxConfig": {
+    "enabled": true,
+    "storeFile": "src/store/store.ts",
+    "rootReducerFile": "src/store/rootReducer.ts",
+    "sliceImportPath": "../features"
+  },
+  "featureStructure": {
+    "directories": ["components", "hooks", "services", "store", "types"],
+    "generateFiles": {
+      "component": true,
+      "hook": true,
+      "service": true,
+      "slice": true,
+      "types": true,
+      "export": true,
+      "routes": true
+    }
+  },
+  "templates": {
+    "useCustomTemplates": false,
+    "templatesDir": "scripts/templates"
+  },
+  "apiConfig": {
+    "baseUrl": "process.env.REACT_APP_API_URL || 'http://localhost:3001/api'",
+    "authRequired": false,
+    "defaultHeaders": {
+      "Content-Type": "application/json"
+    }
+  },
+  "componentDefaults": {
+    "useTypeScript": true,
+    "useTailwind": true,
+    "generateTests": false,
+    "generateStories": false
+  }
+}
