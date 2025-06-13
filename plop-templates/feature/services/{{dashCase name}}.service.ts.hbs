@@ -1,0 +1,32 @@
+import { api } from '@/lib/axios';
+import type { {{pascalCase name}}, {{pascalCase name}}QueryParams, {{pascalCase name}}Response } from '../types/{{dashCase name}}.types';
+
+class {{pascalCase name}}Service {
+private readonly baseUrl = '/api/{{dashCase name}}';
+
+async getAll(params: {{pascalCase name}}QueryParams = {}): Promise<{{pascalCase name}}Response> {
+    const { data } = await api.get<{{pascalCase name}}Response>(this.baseUrl, { params });
+        return data;
+        }
+
+        async getById(id: string): Promise<{{pascalCase name}}> {
+        const { data } = await api.get<{{pascalCase name}}>(`${this.baseUrl}/${id}`);
+        return data;
+        }
+
+        async create(payload: Partial<{{pascalCase name}}>): Promise<{{pascalCase name}}> {
+        const { data } = await api.post<{{pascalCase name}}>(this.baseUrl, payload);
+        return data;
+        }
+
+        async update(id: string, payload: Partial<{{pascalCase name}}>): Promise<{{pascalCase name}}> {
+        const { data } = await api.put<{{pascalCase name}}>(`${this.baseUrl}/${id}`, payload);
+        return data;
+        }
+
+        async delete(id: string): Promise<void> {
+            await api.delete(`${this.baseUrl}/${id}`);
+            }
+            }
+
+            export const {{camelCase name}}Service = new {{pascalCase name}}Service();

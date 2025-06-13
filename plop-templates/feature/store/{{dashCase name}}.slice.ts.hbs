@@ -1,0 +1,39 @@
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { {{pascalCase name}} } from '../types/{{dashCase name}}.types';
+
+interface {{pascalCase name}}State {
+items: {{pascalCase name}}[];
+selectedItem: {{pascalCase name}} | null;
+loading: boolean;
+error: string | null;
+}
+
+const initialState: {{pascalCase name}}State = {
+items: [],
+selectedItem: null,
+loading: false,
+error: null,
+};
+
+const {{camelCase name}}Slice = createSlice({
+name: '{{camelCase name}}',
+initialState,
+reducers: {
+setItems: (state, action: PayloadAction<{{pascalCase name}}[]>) => {
+state.items = action.payload;
+},
+setSelectedItem: (state, action: PayloadAction<{{pascalCase name}} | null>) => {
+state.selectedItem = action.payload;
+},
+setLoading: (state, action: PayloadAction<boolean>) => {
+    state.loading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+        state.error = action.payload;
+        },
+        reset: () => initialState,
+        },
+        });
+
+        export const { setItems, setSelectedItem, setLoading, setError, reset } = {{camelCase name}}Slice.actions;
+        export default {{camelCase name}}Slice.reducer;

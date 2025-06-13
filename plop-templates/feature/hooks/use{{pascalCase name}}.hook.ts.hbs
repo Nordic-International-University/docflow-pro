@@ -1,0 +1,67 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { {{camelCase name}}Service } from '../services/{{dashCase name}}.service';
+import type { {{pascalCase name}}, {{pascalCase name}}QueryParams } from '../types/{{dashCase name}}.types';
+
+// Query Keys
+export const {{camelCase name}}Keys = {
+all: ['{{dashCase name}}'] as const,
+lists: () => [...{{camelCase name}}Keys.all, 'list'] as const,
+list: (params: {{pascalCase name}}QueryParams) => [...{{camelCase name}}Keys.lists(), params] as const,
+details: () => [...{{camelCase name}}Keys.all, 'detail'] as const,
+detail: (id: string) => [...{{camelCase name}}Keys.details(), id] as const,
+};
+
+// Get all
+export const use{{pascalCase name}}List = (params: {{pascalCase name}}QueryParams = {}) => {
+return useQuery({
+queryKey: {{camelCase name}}Keys.list(params),
+queryFn: () => {{camelCase name}}Service.getAll(params),
+});
+};
+
+// Get by ID
+export const use{{pascalCase name}}ById = (id?: string) => {
+return useQuery({
+queryKey: {{camelCase name}}Keys.detail(id!),
+queryFn: () => {{camelCase name}}Service.getById(id!),
+enabled: !!id,
+});
+};
+
+// Create
+export const useCreate{{pascalCase name}} = () => {
+const queryClient = useQueryClient();
+
+return useMutation({
+mutationFn: {{camelCase name}}Service.create,
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: {{camelCase name}}Keys.lists() });
+},
+});
+};
+
+// Update
+export const useUpdate{{pascalCase name}} = () => {
+const queryClient = useQueryClient();
+
+return useMutation({
+mutationFn: ({ id, data }: { id: string; data: Partial<{{pascalCase name}}> }) =>
+{{camelCase name}}Service.update(id, data),
+onSuccess: (_, { id }) => {
+queryClient.invalidateQueries({ queryKey: {{camelCase name}}Keys.lists() });
+queryClient.invalidateQueries({ queryKey: {{camelCase name}}Keys.detail(id) });
+},
+});
+};
+
+// Delete
+export const useDelete{{pascalCase name}} = () => {
+const queryClient = useQueryClient();
+
+return useMutation({
+mutationFn: {{camelCase name}}Service.delete,
+onSuccess: () => {
+queryClient.invalidateQueries({ queryKey: {{camelCase name}}Keys.lists() });
+},
+});
+};

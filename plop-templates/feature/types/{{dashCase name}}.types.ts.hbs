@@ -1,0 +1,21 @@
+export interface {{pascalCase name}} {
+id: string;
+name: string;
+createdAt: string;
+updatedAt: string;
+}
+
+export interface {{pascalCase name}}QueryParams {
+page?: number;
+limit?: number;
+search?: string;
+sortBy?: string;
+sortOrder?: 'asc' | 'desc';
+}
+
+export interface {{pascalCase name}}Response {
+data: {{pascalCase name}}[];
+total: number;
+page: number;
+totalPages: number;
+}
