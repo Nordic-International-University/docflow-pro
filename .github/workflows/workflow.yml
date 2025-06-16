@@ -17,49 +17,6 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=🚀 DEPLOYMENT STARTED | Repo: ${{ github.repository }} | Author: ${{ github.actor }} | Commit: ${{ github.sha }}"
 
-      - name: Check Node.js installation
-        shell: cmd
-        run: |
-          @echo off
-          echo === Checking Node.js installations ===
-          echo.
-          echo Checking default location...
-          if exist "C:\Program Files\nodejs\node.exe" (
-            echo ✓ Found at C:\Program Files\nodejs
-            "C:\Program Files\nodejs\node.exe" --version
-          ) else (
-            echo ✗ Not found at C:\Program Files\nodejs
-          )
-
-          echo.
-          echo Checking x86 location...
-          if exist "C:\Program Files (x86)\nodejs\node.exe" (
-            echo ✓ Found at C:\Program Files (x86)\nodejs
-            "C:\Program Files (x86)\nodejs\node.exe" --version
-          ) else (
-            echo ✗ Not found at C:\Program Files (x86)\nodejs
-          )
-
-          echo.
-          echo Checking user location...
-          if exist "%APPDATA%\npm\node.exe" (
-            echo ✓ Found at %APPDATA%\npm
-            "%APPDATA%\npm\node.exe" --version
-          ) else (
-            echo ✗ Not found at %APPDATA%\npm
-          )
-
-          echo.
-          echo Checking PATH...
-          where node >nul 2>&1
-          if %ERRORLEVEL% EQU 0 (
-            echo ✓ Node found in PATH
-            node --version
-            npm --version
-          ) else (
-            echo ✗ Node not found in PATH
-          )
-
       - name: Copy files to main project
         shell: cmd
         run: |
