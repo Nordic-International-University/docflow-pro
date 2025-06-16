@@ -2,7 +2,7 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
 
 jobs:
   deploy:
@@ -20,6 +20,7 @@ jobs:
       - name: Check Node.js installation
         shell: cmd
         run: |
+          @echo off
           echo === Checking Node.js installations ===
           echo.
           echo Checking default location...
@@ -29,6 +30,7 @@ jobs:
           ) else (
             echo ✗ Not found at C:\Program Files\nodejs
           )
+
           echo.
           echo Checking x86 location...
           if exist "C:\Program Files (x86)\nodejs\node.exe" (
@@ -37,6 +39,7 @@ jobs:
           ) else (
             echo ✗ Not found at C:\Program Files (x86)\nodejs
           )
+
           echo.
           echo Checking user location...
           if exist "%APPDATA%\npm\node.exe" (
@@ -45,10 +48,11 @@ jobs:
           ) else (
             echo ✗ Not found at %APPDATA%\npm
           )
+
           echo.
           echo Checking PATH...
-          where node 2>nul
-          if %errorlevel% equ 0 (
+          where node >nul 2>&1
+          if %ERRORLEVEL% EQU 0 (
             echo ✓ Node found in PATH
             node --version
             npm --version
@@ -62,16 +66,16 @@ jobs:
           echo === Copying files to main project ===
           echo Source: %cd%
           echo Destination: C:\Users\Nordic\WebstormProjects\docflow-pro
-          
-          xcopy /E /Y /Q /I . "C:\Users\Nordic\WebstormProjects\docflow-pro" /EXCLUDE:exclude.txt 2>nul
+
           if not exist exclude.txt (
             echo node_modules\ > exclude.txt
             echo .git\ >> exclude.txt
             echo .github\ >> exclude.txt
-            xcopy /E /Y /Q /I . "C:\Users\Nordic\WebstormProjects\docflow-pro" /EXCLUDE:exclude.txt
-            del exclude.txt
           )
-          
+
+          xcopy /E /Y /Q /I . "C:\Users\Nordic\WebstormProjects\docflow-pro" /EXCLUDE:exclude.txt
+          del exclude.txt
+
           echo ✓ Files copied successfully
 
       - name: Deploy project
@@ -80,12 +84,9 @@ jobs:
         run: |
           echo === Starting deployment ===
           echo Working directory: %cd%
-          echo.
-          
-          :: Try to find Node.js
+
           set NODE_FOUND=0
-          
-          :: Check common locations
+
           if exist "C:\Program Files\nodejs\node.exe" (
             set "NODE_PATH=C:\Program Files\nodejs"
             set NODE_FOUND=1
@@ -93,9 +94,8 @@ jobs:
             set "NODE_PATH=C:\Program Files (x86)\nodejs"
             set NODE_FOUND=1
           ) else (
-            :: Try to find node in PATH
             where node >nul 2>&1
-            if %errorlevel% equ 0 (
+            if %ERRORLEVEL% EQU 0 (
               for /f "delims=" %%i in ('where node') do (
                 set "NODE_EXE=%%i"
                 for %%j in ("%%~dpi..") do set "NODE_PATH=%%~fj"
@@ -105,32 +105,22 @@ jobs:
             )
           )
           :found
-          
-          if %NODE_FOUND% equ 0 (
+
+          if %NODE_FOUND% EQU 0 (
             echo ❌ ERROR: Node.js not found!
-            echo Please install Node.js or check the installation path
             exit /b 1
           )
-          
+
           echo ✓ Using Node.js from: %NODE_PATH%
-          
-          :: Set PATH
           set "PATH=%NODE_PATH%;%NODE_PATH%\node_modules\npm\bin;%APPDATA%\npm;%PATH%"
-          
-          :: Verify Node and npm
-          echo.
+
           echo [1/6] Verifying Node.js and npm...
           call node --version
           call npm --version
-          echo.
-          
-          :: Git info
+
           echo [2/6] Git information...
           git log -1 --pretty=format:"Commit: %%h - %%s (%%an)" 2>nul
-          echo.
-          echo.
-          
-          :: Package info
+
           echo [3/6] Package information...
           if exist "package.json" (
             echo ✓ package.json found
@@ -139,73 +129,39 @@ jobs:
             echo ❌ package.json not found!
             exit /b 1
           )
-          echo.
-          
-          :: Clean install
+
           echo [4/6] Installing dependencies...
-          if exist "node_modules" (
-            echo Removing old node_modules...
-            rmdir /s /q node_modules
-          )
-          if exist "package-lock.json" (
-            echo Removing old package-lock.json...
-            del /f /q package-lock.json
-          )
-          
-          :: Install dependencies
+          if exist "node_modules" rmdir /s /q node_modules
+          if exist "package-lock.json" del /f /q package-lock.json
           call npm cache clean --force
           call npm install --force
-          
-          if %errorlevel% neq 0 (
-            echo ❌ npm install FAILED!
-            exit /b 1
-          )
-          echo ✓ Dependencies installed successfully
-          echo.
-          
-          :: Build project
+          if %ERRORLEVEL% NEQ 0 exit /b 1
+
           echo [5/6] Building project...
           call npm run build
-          
-          if %errorlevel% neq 0 (
-            echo ⚠️  Build failed or not configured (continuing...)
+          if %ERRORLEVEL% NEQ 0 (
+            echo ⚠️ Build failed or not configured (continuing...)
           ) else (
             echo ✓ Build completed successfully
           )
-          echo.
-          
-          :: Start/restart dev server
+
           echo [6/6] Managing development server...
-          
-          :: Check if port 3000 is in use
           netstat -an | findstr ":3000.*LISTENING" >nul 2>&1
-          if %errorlevel% equ 0 (
-            echo Port 3000 is already in use
-            echo Attempting to stop existing process...
-            
-            :: Try to kill process on port 3000
-            for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000.*LISTENING"') do (
-              taskkill /F /PID %%a >nul 2>&1
-              echo Stopped process with PID: %%a
-            )
-            
+          if %ERRORLEVEL% EQU 0 (
+            echo Port 3000 is in use
+            for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000.*LISTENING"') do taskkill /F /PID %%a >nul 2>&1
             timeout /t 2 /nobreak >nul
           )
-          
-          :: Start new dev server
-          echo Starting development server...
+
           start /min cmd /c "call npm run dev > server.log 2>&1"
-          
-          :: Wait and check if server started
           timeout /t 5 /nobreak >nul
           netstat -an | findstr ":3000.*LISTENING" >nul 2>&1
-          if %errorlevel% equ 0 (
-            echo ✓ Development server started successfully on port 3000
+          if %ERRORLEVEL% EQU 0 (
+            echo ✓ Dev server started on port 3000
           ) else (
-            echo ⚠️  Server may not have started properly. Check server.log for details
+            echo ⚠️ Dev server may not have started. Check server.log
           )
-          
-          echo.
+
           echo === Deployment completed! ===
 
       - name: Send success notification
