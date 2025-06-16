@@ -1,4 +1,4 @@
-name: Explicit PATH Deploy
+name: Deploy to Production
 
 on:
   push:
@@ -15,85 +15,211 @@ jobs:
       - name: Send deployment start notification
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT STARTED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Node.js v22.16.0 detected"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=🚀 DEPLOYMENT STARTED | Repo: ${{ github.repository }} | Author: ${{ github.actor }} | Commit: ${{ github.sha }}"
+
+      - name: Check Node.js installation
+        shell: cmd
+        run: |
+          echo === Checking Node.js installations ===
+          echo.
+          echo Checking default location...
+          if exist "C:\Program Files\nodejs\node.exe" (
+            echo ✓ Found at C:\Program Files\nodejs
+            "C:\Program Files\nodejs\node.exe" --version
+          ) else (
+            echo ✗ Not found at C:\Program Files\nodejs
+          )
+          echo.
+          echo Checking x86 location...
+          if exist "C:\Program Files (x86)\nodejs\node.exe" (
+            echo ✓ Found at C:\Program Files (x86)\nodejs
+            "C:\Program Files (x86)\nodejs\node.exe" --version
+          ) else (
+            echo ✗ Not found at C:\Program Files (x86)\nodejs
+          )
+          echo.
+          echo Checking user location...
+          if exist "%APPDATA%\npm\node.exe" (
+            echo ✓ Found at %APPDATA%\npm
+            "%APPDATA%\npm\node.exe" --version
+          ) else (
+            echo ✗ Not found at %APPDATA%\npm
+          )
+          echo.
+          echo Checking PATH...
+          where node 2>nul
+          if %errorlevel% equ 0 (
+            echo ✓ Node found in PATH
+            node --version
+            npm --version
+          ) else (
+            echo ✗ Node not found in PATH
+          )
 
       - name: Copy files to main project
         shell: cmd
         run: |
-          echo Copying updated files to main project...
-          xcopy /E /Y /Q . "C:\Users\Nordic\WebstormProjects\docflow-pro\" >NUL 2>&1
-          echo Files copied successfully
-
-      - name: Deploy with explicit Node.js path
-        shell: cmd
-        run: |
-          cd "C:\Users\Nordic\WebstormProjects\docflow-pro"
+          echo === Copying files to main project ===
+          echo Source: %cd%
+          echo Destination: C:\Users\Nordic\WebstormProjects\docflow-pro
           
-          echo Current directory: %cd%
-          
-          echo Setting explicit PATH for Node.js...
-          set "PATH=C:\Program Files\nodejs;%PATH%"
-          set "PATH=C:\Users\Nordic\AppData\Roaming\npm;%PATH%"
-          
-          echo Testing Node.js with explicit path...
-          "C:\Program Files\nodejs\node.exe" --version
-          "C:\Program Files\nodejs\npm.cmd" --version
-          
-          echo [1/5] Git info...
-          git log -1 --pretty=format:"Commit: %%h - %%s (%%an)"
-          echo.
-          
-          echo [2/5] Package info...
-          if exist "package.json" (
-            echo Package.json found
-            type package.json | findstr "\"name\"\|\"version\"\|\"scripts\""
+          xcopy /E /Y /Q /I . "C:\Users\Nordic\WebstormProjects\docflow-pro" /EXCLUDE:exclude.txt 2>nul
+          if not exist exclude.txt (
+            echo node_modules\ > exclude.txt
+            echo .git\ >> exclude.txt
+            echo .github\ >> exclude.txt
+            xcopy /E /Y /Q /I . "C:\Users\Nordic\WebstormProjects\docflow-pro" /EXCLUDE:exclude.txt
+            del exclude.txt
           )
           
-          echo [3/5] Installing dependencies...
-          if exist "node_modules" rmdir /s /q node_modules
-          if exist "package-lock.json" del package-lock.json
+          echo ✓ Files copied successfully
+
+      - name: Deploy project
+        shell: cmd
+        working-directory: C:\Users\Nordic\WebstormProjects\docflow-pro
+        run: |
+          echo === Starting deployment ===
+          echo Working directory: %cd%
+          echo.
           
-          "C:\Program Files\nodejs\npm.cmd" cache clean --force
-          "C:\Program Files\nodejs\npm.cmd" install --force
+          :: Try to find Node.js
+          set NODE_FOUND=0
           
-          if %errorlevel% equ 0 (
-            echo npm install SUCCESS
+          :: Check common locations
+          if exist "C:\Program Files\nodejs\node.exe" (
+            set "NODE_PATH=C:\Program Files\nodejs"
+            set NODE_FOUND=1
+          ) else if exist "C:\Program Files (x86)\nodejs\node.exe" (
+            set "NODE_PATH=C:\Program Files (x86)\nodejs"
+            set NODE_FOUND=1
           ) else (
-            echo npm install FAILED
+            :: Try to find node in PATH
+            where node >nul 2>&1
+            if %errorlevel% equ 0 (
+              for /f "delims=" %%i in ('where node') do (
+                set "NODE_EXE=%%i"
+                for %%j in ("%%~dpi..") do set "NODE_PATH=%%~fj"
+                set NODE_FOUND=1
+                goto :found
+              )
+            )
+          )
+          :found
+          
+          if %NODE_FOUND% equ 0 (
+            echo ❌ ERROR: Node.js not found!
+            echo Please install Node.js or check the installation path
             exit /b 1
           )
           
-          echo [4/5] Building project...
-          "C:\Program Files\nodejs\npm.cmd" run build
+          echo ✓ Using Node.js from: %NODE_PATH%
           
-          if %errorlevel% equ 0 (
-            echo Build SUCCESS
+          :: Set PATH
+          set "PATH=%NODE_PATH%;%NODE_PATH%\node_modules\npm\bin;%APPDATA%\npm;%PATH%"
+          
+          :: Verify Node and npm
+          echo.
+          echo [1/6] Verifying Node.js and npm...
+          call node --version
+          call npm --version
+          echo.
+          
+          :: Git info
+          echo [2/6] Git information...
+          git log -1 --pretty=format:"Commit: %%h - %%s (%%an)" 2>nul
+          echo.
+          echo.
+          
+          :: Package info
+          echo [3/6] Package information...
+          if exist "package.json" (
+            echo ✓ package.json found
+            type package.json | findstr /C:"\"name\"" /C:"\"version\"" /C:"\"scripts\""
           ) else (
-            echo Build FAILED or not configured
+            echo ❌ package.json not found!
+            exit /b 1
+          )
+          echo.
+          
+          :: Clean install
+          echo [4/6] Installing dependencies...
+          if exist "node_modules" (
+            echo Removing old node_modules...
+            rmdir /s /q node_modules
+          )
+          if exist "package-lock.json" (
+            echo Removing old package-lock.json...
+            del /f /q package-lock.json
           )
           
-          echo [5/5] Starting development server...
-          echo Checking port 3000...
-          netstat -an | findstr ":3000"
-          if %errorlevel% equ 0 (
-            echo Port 3000 is busy - server already running
+          :: Install dependencies
+          call npm cache clean --force
+          call npm install --force
+          
+          if %errorlevel% neq 0 (
+            echo ❌ npm install FAILED!
+            exit /b 1
+          )
+          echo ✓ Dependencies installed successfully
+          echo.
+          
+          :: Build project
+          echo [5/6] Building project...
+          call npm run build
+          
+          if %errorlevel% neq 0 (
+            echo ⚠️  Build failed or not configured (continuing...)
           ) else (
-            echo Starting dev server...
-            start /b cmd /c ""C:\Program Files\nodejs\npm.cmd" run dev > server.log 2>&1"
-            timeout /t 5 /nobreak >nul
-            echo Dev server started
+            echo ✓ Build completed successfully
+          )
+          echo.
+          
+          :: Start/restart dev server
+          echo [6/6] Managing development server...
+          
+          :: Check if port 3000 is in use
+          netstat -an | findstr ":3000.*LISTENING" >nul 2>&1
+          if %errorlevel% equ 0 (
+            echo Port 3000 is already in use
+            echo Attempting to stop existing process...
+            
+            :: Try to kill process on port 3000
+            for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000.*LISTENING"') do (
+              taskkill /F /PID %%a >nul 2>&1
+              echo Stopped process with PID: %%a
+            )
+            
+            timeout /t 2 /nobreak >nul
           )
           
-          echo Deployment completed!
+          :: Start new dev server
+          echo Starting development server...
+          start /min cmd /c "call npm run dev > server.log 2>&1"
+          
+          :: Wait and check if server started
+          timeout /t 5 /nobreak >nul
+          netstat -an | findstr ":3000.*LISTENING" >nul 2>&1
+          if %errorlevel% equ 0 (
+            echo ✓ Development server started successfully on port 3000
+          ) else (
+            echo ⚠️  Server may not have started properly. Check server.log for details
+          )
+          
+          echo.
+          echo === Deployment completed! ===
 
       - name: Send success notification
         if: success()
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT SUCCESS | Repository: ${{ github.repository }} | Node.js v22.16.0 | npm install + build + dev server | Main project updated | Time: %date% %time%"
+          for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set datetime=%%I
+          set datetime=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2% %datetime:~8,2%:%datetime:~10,2%
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=✅ DEPLOYMENT SUCCESS | Repo: ${{ github.repository }} | Commit: ${{ github.sha }} | Time: %datetime%"
 
       - name: Send failure notification
         if: failure()
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT FAILED | Repository: ${{ github.repository }} | Node.js path issue resolved but other error occurred | Time: %date% %time%"
+          for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set datetime=%%I
+          set datetime=%datetime:~0,4%-%datetime:~4,2%-%datetime:~6,2% %datetime:~8,2%:%datetime:~10,2%
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=❌ DEPLOYMENT FAILED | Repo: ${{ github.repository }} | Error: Check GitHub Actions logs | Time: %datetime%"
