@@ -15,7 +15,7 @@ jobs:
     - name: Send deployment start notification
       shell: cmd
       run: |
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT STARTED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Target: Main Project Directory"
+        curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT STARTED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Target: Main Project Directory"
         
     - name: Show current and target directories
       shell: cmd
@@ -109,10 +109,10 @@ jobs:
       if: success()
       shell: cmd
       run: |
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT SUCCESS | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Target: Main Project | Status: Files copied + npm install + build + server started | Time: %date% %time%"
+        curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT SUCCESS | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Target: Main Project | Status: Files copied + npm install + build + server started | Time: %date% %time%"
         
     - name: Send failure notification
       if: failure()
       shell: cmd
       run: |
-        curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT FAILED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Target: Main Project | Check logs for details | Time: %date% %time%"
+        curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT FAILED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Target: Main Project | Check logs for details | Time: %date% %time%"
