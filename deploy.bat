@@ -9,7 +9,7 @@ echo ====================================
 echo   DEPLOYMENT JARAYONI BOSHLANDI
 echo ====================================
 echo Vaqt: %date% %time%
-echo Repository: admission_university
+echo Repository: docflow-pro
 echo Log fayl: %log_file%
 echo.
 
@@ -34,8 +34,8 @@ if exist "package.json" (
     echo Node.js loyihasi topildi >> %log_file%
     echo package.json mazmuni:
     echo package.json mazmuni: >> %log_file%
-    type package.json | findstr "scripts\|dependencies\|next"
-    type package.json | findstr "scripts\|dependencies\|next" >> %log_file% 2>&1
+    type package.json | findstr "scripts\|dependencies\|vite\|react"
+    type package.json | findstr "scripts\|dependencies\|vite\|react" >> %log_file% 2>&1
 ) else (
     echo ✓ Oddiy fayl loyihasi
     echo Oddiy fayl loyihasi >> %log_file%
@@ -55,9 +55,9 @@ if exist "package.json" (
         del package-lock.json
         echo package-lock.json o'chirildi >> %log_file%
     )
-    if exist ".next" (
-        rmdir /s /q .next
-        echo .next papka o'chirildi >> %log_file%
+    if exist "dist" (
+        rmdir /s /q dist
+        echo dist papka o'chirildi >> %log_file%
     )
 
     echo npm cache clean --force...
@@ -84,16 +84,14 @@ echo.
 echo [4/7] Dependencies tekshirish...
 echo [4/7] Dependencies tekshirish... >> %log_file%
 if exist "package.json" (
-    echo Next.js o'rnatilganligini tekshirish...
-    echo Next.js tekshirilmoqda... >> %log_file%
-    if exist "node_modules\.bin\next.cmd" (
-        echo ✓ Next.js topildi
-        echo Next.js topildi: node_modules\.bin\next.cmd >> %log_file%
+    echo Vite va React o'rnatilganligini tekshirish...
+    echo Vite va React tekshirilmoqda... >> %log_file%
+    if exist "node_modules\.bin\vite.cmd" (
+        echo ✓ Vite topildi
+        echo Vite topildi: node_modules\.bin\vite.cmd >> %log_file%
     ) else (
-        echo ! Next.js topilmadi, qo'shimcha o'rnatish...
-        echo Next.js topilmadi, qo'shimcha o'rnatilmoqda... >> %log_file%
-        npm install next react react-dom --save >> %log_file% 2>&1
-        echo Next.js qo'shimcha o'rnatish tugadi >> %log_file%
+        echo ! Vite topilmadi
+        echo Vite topilmadi >> %log_file%
     )
 ) else (
     echo Dependencies tekshirish kerak emas
@@ -103,7 +101,7 @@ echo.
 
 echo [5/7] Backup yaratish...
 echo [5/7] Backup yaratish... >> %log_file%
-set backup_dir=C:\Backup\admission_university_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
+set backup_dir=C:\Backup\docflow-pro_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
 set backup_dir=%backup_dir: =0%
 mkdir "%backup_dir%" 2>NUL
 echo Backup papka yaratildi: %backup_dir% >> %log_file%
@@ -138,38 +136,38 @@ if exist "package.json" (
 )
 echo.
 
-echo [7/7] Server ishga tushirish...
-echo [7/7] Server ishga tushirish... >> %log_file%
+echo [7/7] Development server ishga tushirish...
+echo [7/7] Development server ishga tushirish... >> %log_file%
 if exist "package.json" (
-    echo Server portlarini tekshirish...
+    echo Server portlarini tekshirish (port 3000)...
     echo Server portlarini tekshirish... >> %log_file%
-    netstat -an | findstr ":3777" >> %log_file%
+    netstat -an | findstr ":3000" >> %log_file%
     if !errorlevel! equ 0 (
-        echo Port 3777 band, server allaqachon ishlamoqda
-        echo Port 3777 BAND - Server allaqachon ishlamoqda >> %log_file%
+        echo Port 3000 band, server allaqachon ishlamoqda
+        echo Port 3000 BAND - Server allaqachon ishlamoqda >> %log_file%
 
         :: Serverning ishlayotganini tasdiqlash
         echo Server holati tekshirilmoqda...
         tasklist | findstr "node.exe" >> %log_file%
     ) else (
-        echo Port 3777 bo'sh, server ishga tushirilmoqda...
-        echo Port 3777 BOSH - Server ishga tushirilmoqda >> %log_file%
+        echo Port 3000 bo'sh, dev server ishga tushirilmoqda...
+        echo Port 3000 BOSH - Dev server ishga tushirilmoqda >> %log_file%
 
-        echo npm run start background'da ishga tushirilmoqda...
-        echo Server start command: npm run start >> %log_file%
-        start /b cmd /c "npm run start > server_%date:~-4,4%%date:~-10,2%%date:~-7,2%.log 2>&1"
+        echo npm run dev background'da ishga tushirilmoqda...
+        echo Server start command: npm run dev >> %log_file%
+        start /b cmd /c "npm run dev > server_%date:~-4,4%%date:~-10,2%%date:~-7,2%.log 2>&1"
 
         timeout /t 5 /nobreak >nul
-        echo ✓ Server ishga tushirildi (background)
-        echo Server background'da ishga tushirildi >> %log_file%
+        echo ✓ Dev server ishga tushirildi (background)
+        echo Dev server background'da ishga tushirildi >> %log_file%
 
         :: Server ishlaganini tekshirish
-        timeout /t 2 /nobreak >nul
-        netstat -an | findstr ":3777" >> %log_file%
+        timeout /t 3 /nobreak >nul
+        netstat -an | findstr ":3000" >> %log_file%
         if !errorlevel! equ 0 (
-            echo Server muvaffaqiyatli ishga tushdi - Port 3777 ACTIVE >> %log_file%
+            echo Dev server muvaffaqiyatli ishga tushdi - Port 3000 ACTIVE >> %log_file%
         ) else (
-            echo Server ishga tushmagan yoki kechikmoqda >> %log_file%
+            echo Dev server ishga tushmagan yoki kechikmoqda >> %log_file%
         )
     )
 ) else (
@@ -185,7 +183,7 @@ echo Tugallanish vaqti: %date% %time%
 echo Backup joylashuvi: %backup_dir%
 echo Server log: server_%date:~-4,4%%date:~-10,2%%date:~-7,2%.log
 echo Deployment log: %log_file%
-echo Port: 3777
+echo Port: 3000 (Development)
 echo Status: SUCCESS
 echo ====================================
 
@@ -194,7 +192,7 @@ echo ======================================== >> %log_file%
 echo DEPLOYMENT TUGALLANDI: %date% %time% >> %log_file%
 echo Status: SUCCESS >> %log_file%
 echo Backup: %backup_dir% >> %log_file%
-echo Port: 3777 >> %log_file%
+echo Port: 3000 >> %log_file%
 echo ======================================== >> %log_file%
 
 echo.
@@ -202,6 +200,6 @@ echo 📁 Log fayllar:
 echo   - Deployment: %log_file%
 echo   - Server: server_%date:~-4,4%%date:~-10,2%%date:~-7,2%.log
 echo.
-echo 🌐 Serverga kirish: http://localhost:3777
+echo 🌐 Serverga kirish: http://localhost:3000
 echo 📊 Server holati: tasklist | findstr "node.exe"
-echo 🔍 Port holati: netstat -an | findstr ":3777"
+echo 🔍 Port holati: netstat -an | findstr ":3000"
