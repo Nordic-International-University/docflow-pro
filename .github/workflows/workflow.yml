@@ -17,109 +17,16 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=🚀 DEPLOYMENT STARTED | Repo: ${{ github.repository }} | Author: ${{ github.actor }} | Commit: ${{ github.sha }}"
 
-      - name: Copy files to main project
+      - name: Deploy project using .bat script in project root
         shell: cmd
         run: |
-          echo === Copying files to main project ===
-          echo Source: %cd%
-          echo Destination: C:\Users\Nordic\WebstormProjects\docflow-pro
-
-          if not exist exclude.txt (
-            echo node_modules\ > exclude.txt
-            echo .git\ >> exclude.txt
-            echo .github\ >> exclude.txt
-          )
-
-          xcopy /E /Y /Q /I . "C:\Users\Nordic\WebstormProjects\docflow-pro" /EXCLUDE:exclude.txt
-          del exclude.txt
-
-          echo ✓ Files copied successfully
-
-      - name: Deploy project
-        shell: cmd
-        working-directory: C:\Users\Nordic\WebstormProjects\docflow-pro
-        run: |
-          echo === Starting deployment ===
-          echo Working directory: %cd%
-
-          set NODE_FOUND=0
-
-          if exist "C:\Program Files\nodejs\node.exe" (
-            set "NODE_PATH=C:\Program Files\nodejs"
-            set NODE_FOUND=1
-          ) else if exist "C:\Program Files (x86)\nodejs\node.exe" (
-            set "NODE_PATH=C:\Program Files (x86)\nodejs"
-            set NODE_FOUND=1
+          echo === Running deploy.bat in project root ===
+          if exist "deploy.bat" (
+            call deploy.bat
           ) else (
-            where node >nul 2>&1
-            if %ERRORLEVEL% EQU 0 (
-              for /f "delims=" %%i in ('where node') do (
-                set "NODE_EXE=%%i"
-                for %%j in ("%%~dpi..") do set "NODE_PATH=%%~fj"
-                set NODE_FOUND=1
-                goto :found
-              )
-            )
-          )
-          :found
-
-          if %NODE_FOUND% EQU 0 (
-            echo ❌ ERROR: Node.js not found!
+            echo ❌ deploy.bat topilmadi! Deployment to'xtatildi.
             exit /b 1
           )
-
-          echo ✓ Using Node.js from: %NODE_PATH%
-          set "PATH=%NODE_PATH%;%NODE_PATH%\node_modules\npm\bin;%APPDATA%\npm;%PATH%"
-
-          echo [1/6] Verifying Node.js and npm...
-          call node --version
-          call npm --version
-
-          echo [2/6] Git information...
-          git log -1 --pretty=format:"Commit: %%h - %%s (%%an)" 2>nul
-
-          echo [3/6] Package information...
-          if exist "package.json" (
-            echo ✓ package.json found
-            type package.json | findstr /C:"\"name\"" /C:"\"version\"" /C:"\"scripts\""
-          ) else (
-            echo ❌ package.json not found!
-            exit /b 1
-          )
-
-          echo [4/6] Installing dependencies...
-          if exist "node_modules" rmdir /s /q node_modules
-          if exist "package-lock.json" del /f /q package-lock.json
-          call npm cache clean --force
-          call npm install --force
-          if %ERRORLEVEL% NEQ 0 exit /b 1
-
-          echo [5/6] Building project...
-          call npm run build
-          if %ERRORLEVEL% NEQ 0 (
-            echo ⚠️ Build failed or not configured (continuing...)
-          ) else (
-            echo ✓ Build completed successfully
-          )
-
-          echo [6/6] Managing development server...
-          netstat -an | findstr ":3000.*LISTENING" >nul 2>&1
-          if %ERRORLEVEL% EQU 0 (
-            echo Port 3000 is in use
-            for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":3000.*LISTENING"') do taskkill /F /PID %%a >nul 2>&1
-            timeout /t 2 /nobreak >nul
-          )
-
-          start /min cmd /c "call npm run dev > server.log 2>&1"
-          timeout /t 5 /nobreak >nul
-          netstat -an | findstr ":3000.*LISTENING" >nul 2>&1
-          if %ERRORLEVEL% EQU 0 (
-            echo ✓ Dev server started on port 3000
-          ) else (
-            echo ⚠️ Dev server may not have started. Check server.log
-          )
-
-          echo === Deployment completed! ===
 
       - name: Send success notification
         if: success()
