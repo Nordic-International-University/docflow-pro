@@ -1,0 +1,33 @@
+import { lazy } from 'react';
+import { type RouteObject } from 'react-router-dom';
+import { ErrorBoundary } from '../error/error.baundary';
+import { {{icon}} } from 'lucide-react';
+
+const {{pascalCase name}}Page = lazy(() => import('../components/{{dashCase name}}.component'));
+
+export const {{camelCase name}}Route: RouteObject = {
+path: '/{{dashCase name}}',
+element: (
+<>
+<ErrorBoundary>
+    <{{pascalCase name}}Page />
+</ErrorBoundary>
+</>
+),
+handle: {
+title: '{{properCase name}}',
+breadcrumb: '{{properCase name}}',
+icon: {{icon}}, // <-- icon as React component
+auth: true,
+permissions: ['view_{{snakeCase name}}'],
+layout: true,
+},
+errorElement: (
+<ErrorBoundary>
+    <{{pascalCase name}}Page />
+</ErrorBoundary>
+),
+loader: async () => {
+return null;
+},
+};

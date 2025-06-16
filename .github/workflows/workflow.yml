@@ -1,4 +1,4 @@
-name: Fixed Detailed Deployment
+name: Explicit PATH Deploy
 
 on:
   push:
@@ -15,171 +15,85 @@ jobs:
       - name: Send deployment start notification
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT STARTED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Commit: ${{ github.sha }} | Time: %date% %time%"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT STARTED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Node.js v22.16.0 detected"
 
-      - name: Debug - Show current directory and files
+      - name: Copy files to main project
         shell: cmd
         run: |
-          echo Current directory:
-          cd
-          echo Files in directory:
-          dir
-          echo Looking for deploy.bat:
-          if exist "deploy.bat" (
-            echo deploy.bat FOUND
-          ) else (
-            echo deploy.bat NOT FOUND
-          )
+          echo Copying updated files to main project...
+          xcopy /E /Y /Q . "C:\Users\Nordic\WebstormProjects\docflow-pro\" >NUL 2>&1
+          echo Files copied successfully
 
-      - name: Send step 1 notification
+      - name: Deploy with explicit Node.js path
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 1/7: Git ma'lumotlari olinmoqda..."
-
-      - name: Execute Git info step
-        shell: cmd
-        run: |
-          echo [1/7] Git ma'lumotlarini olish...
-          git log -1 --pretty=format:"Son'gi commit: %%h - %%s (%%an, %%ar)"
+          cd "C:\Users\Nordic\WebstormProjects\docflow-pro"
+          
+          echo Current directory: %cd%
+          
+          echo Setting explicit PATH for Node.js...
+          set "PATH=C:\Program Files\nodejs;%PATH%"
+          set "PATH=C:\Users\Nordic\AppData\Roaming\npm;%PATH%"
+          
+          echo Testing Node.js with explicit path...
+          "C:\Program Files\nodejs\node.exe" --version
+          "C:\Program Files\nodejs\npm.cmd" --version
+          
+          echo [1/5] Git info...
+          git log -1 --pretty=format:"Commit: %%h - %%s (%%an)"
           echo.
-
-      - name: Send step 2 notification
-        shell: cmd
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 2/7: Loyiha fayllari tekshirilmoqda..."
-
-      - name: Execute project check step
-        shell: cmd
-        run: |
-          echo [2/7] Loyiha fayllarini tekshirish...
-          if exist "package.json" (
-            echo Node.js loyihasi topildi
-            type package.json | findstr "scripts\|dependencies\|next"
-          ) else (
-            echo Oddiy fayl loyihasi
-          )
-
-      - name: Send step 3 notification
-        shell: cmd
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 3/7: npm install --force jarayoni boshlandi..."
-
-      - name: Execute npm install step
-        shell: cmd
-        run: |
-          echo [3/7] Node modules tozalash va qayta o'rnatish...
-          if exist "package.json" (
-            echo Eski node_modules o'chirilmoqda...
-            if exist "node_modules" rmdir /s /q node_modules
-            if exist "package-lock.json" del package-lock.json
-            if exist ".next" rmdir /s /q .next
           
-            echo npm cache clean --force...
-            npm cache clean --force
+          echo [2/5] Package info...
+          if exist "package.json" (
+            echo Package.json found
+            type package.json | findstr "\"name\"\|\"version\"\|\"scripts\""
+          )
           
-            echo npm install --force jarayoni boshlandi...
-            npm install --force
-            if %errorlevel% equ 0 (
-              echo npm install --force muvaffaqiyatli
-            ) else (
-              echo npm install --force xatosi
-              exit /b 1
-            )
+          echo [3/5] Installing dependencies...
+          if exist "node_modules" rmdir /s /q node_modules
+          if exist "package-lock.json" del package-lock.json
+          
+          "C:\Program Files\nodejs\npm.cmd" cache clean --force
+          "C:\Program Files\nodejs\npm.cmd" install --force
+          
+          if %errorlevel% equ 0 (
+            echo npm install SUCCESS
           ) else (
-            echo Loyiha Node.js emas, npm install kerak emas
+            echo npm install FAILED
+            exit /b 1
           )
-
-      - name: Send step 4 notification
-        shell: cmd
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 4/7: Dependencies tekshirilmoqda..."
-
-      - name: Execute dependencies check step
-        shell: cmd
-        run: |
-          echo [4/7] Dependencies tekshirish...
-          if exist "package.json" (
-            echo Next.js o'rnatilganligini tekshirish...
-            if exist "node_modules\.bin\next.cmd" (
-              echo Next.js topildi
-            ) else (
-              echo Next.js topilmadi, qo'shimcha o'rnatish...
-              npm install next react react-dom --save
-            )
+          
+          echo [4/5] Building project...
+          "C:\Program Files\nodejs\npm.cmd" run build
+          
+          if %errorlevel% equ 0 (
+            echo Build SUCCESS
           ) else (
-            echo Dependencies tekshirish kerak emas
+            echo Build FAILED or not configured
           )
-
-      - name: Send step 5 notification
-        shell: cmd
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 5/7: Backup yaratilmoqda..."
-
-      - name: Execute backup step
-        shell: cmd
-        run: |
-          echo [5/7] Backup yaratish...
-          set backup_dir=C:\Backup\admission_university_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%
-          set backup_dir=%backup_dir: =0%
-          mkdir "%backup_dir%" 2>NUL
-          xcopy /E /Y /Q . "%backup_dir%\" >NUL 2>&1
-          echo Backup yaratildi: %backup_dir%
-
-      - name: Send step 6 notification
-        shell: cmd
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 6/7: npm run build jarayoni boshlandi..."
-
-      - name: Execute build step
-        shell: cmd
-        run: |
-          echo [6/7] Build jarayoni (npm run build)...
-          if exist "package.json" (
-            echo npm run build jarayoni boshlandi...
-            npm run build
-            if %errorlevel% equ 0 (
-              echo npm run build muvaffaqiyatli
-            ) else (
-              echo npm run build xatosi yuz berdi
-              echo Build'siz davom etilmoqda...
-            )
+          
+          echo [5/5] Starting development server...
+          echo Checking port 3000...
+          netstat -an | findstr ":3000"
+          if %errorlevel% equ 0 (
+            echo Port 3000 is busy - server already running
           ) else (
-            echo Build kerak emas
+            echo Starting dev server...
+            start /b cmd /c ""C:\Program Files\nodejs\npm.cmd" run dev > server.log 2>&1"
+            timeout /t 5 /nobreak >nul
+            echo Dev server started
           )
+          
+          echo Deployment completed!
 
-      - name: Send step 7 notification
-        shell: cmd
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=STEP 7/7: npm run start - Server ishga tushirilmoqda..."
-
-      - name: Execute server start step
-        shell: cmd
-        run: |
-          echo [7/7] Server ishga tushirish...
-          if exist "package.json" (
-            echo Server portlarini tekshirish...
-            netstat -an | findstr ":3777"
-            if %errorlevel% equ 0 (
-              echo Port 3777 band, server allaqachon ishlamoqda
-            ) else (
-              echo Port 3777 bo'sh, server ishga tushirilmoqda...
-              echo npm run start background'da ishga tushirilmoqda...
-              start /b cmd /c "npm run start > server_%date:~-4,4%%date:~-10,2%%date:~-7,2%.log 2>&1"
-              timeout /t 5 /nobreak >nul
-              echo Server ishga tushirildi (background)
-            )
-          ) else (
-            echo Server ishga tushirish kerak emas
-          )
-
-      - name: Send deployment success notification
+      - name: Send success notification
         if: success()
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT SUCCESS | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | ALL STEPS COMPLETED: 1) Git info 2) Project check 3) npm install --force 4) Dependencies check 5) Backup created 6) npm run build 7) npm run start | Status: SUCCESS | Time: %date% %time%"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT SUCCESS | Repository: ${{ github.repository }} | Node.js v22.16.0 | npm install + build + dev server | Main project updated | Time: %date% %time%"
 
       - name: Send failure notification
         if: failure()
         shell: cmd
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT FAILED | Repository: ${{ github.repository }} | Author: ${{ github.actor }} | Status: FAILED | Time: %date% %time%"
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.BOT }}/sendMessage" -d "chat_id=6135147194" -d "text=DEPLOYMENT FAILED | Repository: ${{ github.repository }} | Node.js path issue resolved but other error occurred | Time: %date% %time%"

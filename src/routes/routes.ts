@@ -1,9 +1,5 @@
-// src/routes/routes.ts
-import { ABOUTRoutes } from '../features/ABOUT/routes/ABOUT.routes';
-import { usersRoutes } from '../features/users/routes/users.routes';
-
-export const routes = [
-  ...usersRoutes,
-  ...ABOUTRoutes,
-  // Boshqa routelar
-];
+import { akbarRoute } from "../features/akbar/route/akbar.route";
+import { notificationRoute } from "../features/notification/route/notification.route";
+import { booksRoute } from "../features/books/route/books.route";
+import { usersRoute } from "../features/users/export";
+export const routes = [akbarRoute, notificationRoute, booksRoute, usersRoute];
